@@ -3,15 +3,22 @@
 # ２。GooglesearchAPIでそれらを検索
 # ３。検索したURLsが返ってくるのでそれをjina readerでスクレイピング
 # 結果をLLMでまとめる
-import config as config
+import config
 from typing import List
-from litellm import completion
+from pydantic import BaseModel
+from loguru import logger
 
 # debug
 import litellm
 litellm.set_verbose=True
 
-gemini_api_key = config.gemini_api_key
+class SearchWord(BaseModel):
+    keyword: str
+    fact: str
+
+class SearchTopicsResponse(BaseModel):
+    search_words: List[SearchWord]
+
 def generate_search_keywords(topic: str) -> list[str]:
     """
     トピックに関連する雑学を検索するためのキーワードを生成します。
@@ -31,7 +38,7 @@ def generate_search_keywords(topic: str) -> list[str]:
         f"{topic} 歴史",
         f"{topic} 統計",
         f"{topic} 秘密",
-        f"意外 {topic} 真実",
+        f"{topic} 真実",
         f"{topic} 逸話",
         f"{topic} パラドックス"
     ]
@@ -40,7 +47,7 @@ def generate_search_keywords(topic: str) -> list[str]:
 
 
 
-def find_interesting_topics(keywords: List[str], model:str = "gemini/gemini-1.5-pro-latest") -> str:
+def find_interesting_topics(keywords: List[str]) -> str:
     """
     検索キーワードのリストから、LLMを使用して雑学を検索します。
 
@@ -50,31 +57,27 @@ def find_interesting_topics(keywords: List[str], model:str = "gemini/gemini-1.5-
     戻り値:
         str: LLMの応答
     """
-    model = model
     prompt = f"""
     # 命令
-    以下のキーワードリストに関する興味深い具体的な事実を教えてください。英語で思考して日本語で答えてください。
+    以下のキーワードリストに関する興味深い具体的な事実を教えてください。英語で出力してください。
 
     # 検索キーワード:
     {', '.join(keywords)}
 
-    # 解答形式：
-    1. [キーワード]: [詳細]
-    2. [キーワード]: [詳細]
-    3. [キーワード]: [詳細]
-    ...
-    n. [キーワード]: [詳細]
     """
-
-    response = completion(
-    model=model, 
-    messages=[{"role": "user", "content": prompt}]
+    response = config.client.messages.create(
+    response_model=SearchTopicsResponse,
+    messages=[
+        {"role": "user", "content": prompt},
+    ],
     )
-    return response.choices[0].message.content
+    assert isinstance(response,SearchTopicsResponse)
+    logger.info(response.model_dump())
+    return response
 
 if __name__=="__main__":
-    print("hey")
     topic = "誕生日"
     keywords = generate_search_keywords(topic)
     response = find_interesting_topics(keywords)
     print(response)
+
