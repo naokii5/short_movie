@@ -3,8 +3,15 @@
 # ２。GooglesearchAPIでそれらを検索
 # ３。検索したURLsが返ってくるのでそれをjina readerでスクレイピング
 # 結果をLLMでまとめる
+import config as config
+from typing import List
+from litellm import completion
 
+# debug
+import litellm
+litellm.set_verbose=True
 
+gemini_api_key = config.gemini_api_key
 def generate_search_keywords(topic: str) -> list[str]:
     """
     トピックに関連する雑学を検索するためのキーワードを生成します。
@@ -26,42 +33,48 @@ def generate_search_keywords(topic: str) -> list[str]:
         f"{topic} 秘密",
         f"意外 {topic} 真実",
         f"{topic} 逸話",
+        f"{topic} パラドックス"
     ]
     
     return keywords
 
-from typing import List
-import google.generativeai as genai
-import os
 
-genai.configure(api_key=os.environ["API_KEY"])
 
-def find_interesting_topics(keywords: List[str], n: int = 3) -> List[str]:
+def find_interesting_topics(keywords: List[str], model:str = "gemini/gemini-1.5-pro-latest") -> str:
     """
-    検索キーワードのリストから、Geminiを使用して最も興味を惹きそうなトピックをn個探します。
+    検索キーワードのリストから、LLMを使用して雑学を検索します。
 
     引数:
         keywords (List[str]): 検索キーワードのリスト
-        n (int): 返すトピックの数（デフォルトは3）
 
     戻り値:
-        List[str]: 最も興味深いと判断されたトピックのリスト
+        str: LLMの応答
     """
-    model = GenerativeModel('gemini-pro')
+    model = model
     prompt = f"""
-    以下の検索キーワードリストから、最も興味深く、人々の注目を集めそうなトピックを{n}個選んでください。
-    選んだトピックには、簡単な理由も付け加えてください。
+    # 命令
+    以下のキーワードリストに関する興味深い具体的な事実を教えてください。英語で思考して日本語で答えてください。
 
-    検索キーワード:
+    # 検索キーワード:
     {', '.join(keywords)}
 
-    回答は以下の形式で提供してください：
-    1. [トピック]: [選んだ理由]
-    2. [トピック]: [選んだ理由]
-    3. [トピック]: [選んだ理由]
+    # 解答形式：
+    1. [キーワード]: [詳細]
+    2. [キーワード]: [詳細]
+    3. [キーワード]: [詳細]
+    ...
+    n. [キーワード]: [詳細]
     """
 
-    response = model.generate_content(prompt)
-    topics = [line.split(':')[0].strip() for line in response.text.split('\n') if line.strip()]
+    response = completion(
+    model=model, 
+    messages=[{"role": "user", "content": prompt}]
+    )
+    return response.choices[0].message.content
 
-    return topics[:n]
+if __name__=="__main__":
+    print("hey")
+    topic = "誕生日"
+    keywords = generate_search_keywords(topic)
+    response = find_interesting_topics(keywords)
+    print(response)
