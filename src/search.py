@@ -35,7 +35,7 @@ def topics_URLs(search_topics: SearchTopicsResponse) -> list[tuple[str,dict]]:
     for i, url in enumerate(urls):
         file_path = f"urls/{i}{url[0]}.json"
         with open(file_path, "w") as f:
-            json.dump(url, f, indent=4)
+            json.dump(url[1], f, indent=4, ensure_ascii=False)
     return urls
 
 
