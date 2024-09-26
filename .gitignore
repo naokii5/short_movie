@@ -1,1 +1,5 @@
 .env
+search.txt
+urls/
+scrape_data/
+__pycache__/
