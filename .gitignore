@@ -1,2 +1,4 @@
 .env
 search.txt
+urls/
+__pycache__/

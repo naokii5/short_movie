@@ -6,6 +6,7 @@ import os
 load_dotenv(verbose=True)
 google_api_key = os.getenv("GEMINI_API_KEY")
 google_cse_id = os.getenv("CUSTOM_ENGINE_ID")
+jina_api_key = os.getenv("JINA_API_KEY")
 # litellmで制御したかったが、バグるため一旦純正の方法に切り替える
 # client = instructor.patch(
 #     Router(
