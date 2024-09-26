@@ -22,9 +22,14 @@ jina_api_key = os.getenv("JINA_API_KEY")
 #     )
 # )
 
+ 
+genai.configure(api_key=google_api_key)
+gemini_flash= genai.GenerativeModel("gemini-1.5-flash-latest")
+
+
 client = instructor.from_gemini(
-    client=genai.GenerativeModel(
-        model_name="models/gemini-1.5-flash-latest",
-    ),
-    mode=instructor.Mode.GEMINI_JSON,
+client=genai.GenerativeModel(
+    model_name="models/gemini-1.5-flash-latest",
+),
+mode=instructor.Mode.GEMINI_JSON,
 )
