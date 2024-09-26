@@ -70,22 +70,23 @@ def scrape_urls(urls:list[URLData]) -> list[ScrapeData]:
     戻り値:
         list[ScrapeData]: スクレイピングされたデータのリスト
     """
+    assert all(isinstance(url, URLData) for url in urls)
     base_url = 'https://r.jina.ai/'
     headers = {"Authorization": f"Bearer {config.jina_api_key}"}
     scrape_data_dict = {}
     for url_data in urls:
-        try:
-            target_url = url_data.url
-            search_url = base_url+target_url
-            
-            logger.info(f"url: {search_url}")
-            response = requests.get(search_url, headers=headers)
-            print(f"type: {type(response)}")
-            print(response.text)
-            
-            scrape_data_dict.setdefault(url_data.keyword, []).append(URLText(url=target_url, text=response.text))
-        except Exception as e:
-            logger.error(f"Error: {e}")
+        for target_url in url_data.urls:
+            try:
+                search_url = base_url+target_url
+                
+                logger.info(f"url: {search_url}")
+                response = requests.get(search_url, headers=headers)
+                print(f"type: {type(response)}")
+                print(response.text)
+                
+                scrape_data_dict.setdefault(url_data.keyword, []).append(URLText(url=target_url, text=response.text))
+            except Exception as e:
+                logger.error(f"Error: {e}")
     for key, url_text_list in scrape_data_dict.items():
         file_path = f"scrape_data/{key}.json"
         with open(file_path, "w") as f:
@@ -109,5 +110,6 @@ if __name__ == "__main__":
             }
         ]
     )
-    urls = topics_URLs(search_topics)
+    # urls = topics_URLs(search_topics)
+    urls = URLData(keyword="誕生日", urls=["https://en.wikipedia.org/wiki/Birthday_problem"], meta_data="birthday paradox")
     scrape_urls(urls)
