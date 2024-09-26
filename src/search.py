@@ -5,14 +5,17 @@ import pprint
 import requests
 from loguru import logger
 import json
-from pydantic import Basemodel
+from pydantic import BaseModel
 
-class ScrapeData(Basemodel):
-    keyword: str
+class URLText(BaseModel):
     url: str
     text: str
 
-class URLData(Basemodel):
+class ScrapeData(BaseModel):
+    keyword: str
+    data: list[URLText]
+
+class URLData(BaseModel):
     keyword: str
     urls: list[str]
     meta_data: str
@@ -69,7 +72,7 @@ def scrape_urls(urls:list[URLData]) -> list[ScrapeData]:
     """
     base_url = 'https://r.jina.ai/'
     headers = {"Authorization": f"Bearer {config.jina_api_key}"}
-    scrape_data = {}
+    scrape_data_dict = {}
     for url_data in urls:
         try:
             target_url = url_data.url
@@ -80,14 +83,18 @@ def scrape_urls(urls:list[URLData]) -> list[ScrapeData]:
             print(f"type: {type(response)}")
             print(response.text)
             
-            scrape_data.append(ScrapeData(keyword=url_data.keyword, url=target_url, text=response.text))
+            scrape_data_dict.setdefault(url_data.keyword, []).append(URLText(url=target_url, text=response.text))
         except Exception as e:
             logger.error(f"Error: {e}")
-    for i, url_data in enumerate(urls):
-        file_path = f"scrape_data/{i}_{url_data.keyword}.json"
+    for key, url_text_list in scrape_data_dict.items():
+        file_path = f"scrape_data/{key}.json"
         with open(file_path, "w") as f:
-            json.dump(url_data.model_dump(by_alias=True), f, indent=4, ensure_ascii=False)
-    return scrape_data
+            json.dump([url_text.model_dump(by_alias=True) for url_text in url_text_list], f, indent=4, ensure_ascii=False)
+    
+    scrape_data_list = []
+    for key, url_text_list in scrape_data_dict.items():
+        scrape_data_list.append(ScrapeData(keyword=key, data=url_text_list))
+    return scrape_data_list
 
 
 
