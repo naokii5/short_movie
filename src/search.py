@@ -56,6 +56,10 @@ def scrape_urls(urls: list[tuple[str,dict]]):
             scrape_data.append((url[0],response.text))
         except Exception as e:
             logger.error(f"Error: {e}")
+    for i, (keyword, data) in enumerate(scrape_data):
+        file_path = f"scrape_data/{i}_{keyword}.json"
+        with open(file_path, "w") as f:
+            json.dump({"keyword": keyword, "data": data}, f, indent=4, ensure_ascii=False)
     return scrape_data
 
 
