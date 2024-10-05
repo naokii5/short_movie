@@ -3,11 +3,11 @@ from loguru import logger
 from search import ScrapeData
 from pydantic import BaseModel
 
-class TalkScript(BaseModel):
-    title: str
-    content: str
+class Draft(BaseModel):
+    keyword: str
+    content: list[str]
 
-def make_draft(scrape_data_list: list[ScrapeData]) -> str:
+def make_draft(scrape_data_list: list[ScrapeData]) -> Draft:
     """
     スクレイピングしたデータを元に、下書きを作成します。
 
@@ -15,12 +15,12 @@ def make_draft(scrape_data_list: list[ScrapeData]) -> str:
         scrape_data (dict[str, list[tuple[str, str]]): スクレイピングしたデータ
 
     戻り値:
-        str: 動画の台本
+        Draft: 動画の台本
     """
     assert all(isinstance(scrape_data, ScrapeData) for scrape_data in scrape_data_list)
     draft = ""
     for scrape_data in scrape_data_list:
-        draft += f"# {scrape_data.keyword}\n\n"
+        draft += f"# keyword={scrape_data.keyword}\n\n"
         for data in scrape_data.data:
             draft += f"## {data.url}\n\n{data.text}\n\n"
     logger.info(f"draft: {draft}")
@@ -34,12 +34,17 @@ def make_draft(scrape_data_list: list[ScrapeData]) -> str:
     """
     prompt = source + draft
     logger.info(f"prompt: {prompt}")
-    # instructorを使うとなぜかエラーが出るので、config.gemini_flashを使う
-    response = config.gemini_flash.generate_content(prompt)
 
+    response = config.client.messages.create(
+    response_model=Draft,
+    messages=[
+        {"role": "user", "content": prompt},
+    ],
+    )
     logger.info(f"response: {response})")
+    assert isinstance(response,Draft)
     
-    return response._result.candidates[0].content.parts[0].text
+    return response
 
 
 if __name__ == "__main__":
@@ -47,7 +52,7 @@ if __name__ == "__main__":
     urls = [URLData(keyword="誕生日", urls=["https://en.wikipedia.org/wiki/Birthday_problem"], meta_data="birthday paradox")]
     scrape_data = scrape_urls(urls)
     draft = make_draft(scrape_data)
-    # print(draft)
+    print(draft)
 
             
 
