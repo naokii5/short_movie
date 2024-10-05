@@ -1,8 +1,19 @@
 {
-	"name": "poetry3-poetry-pyenv",
-	"build": {
-		"dockerfile": "Dockerfile"
-	},
+	"name": "short-movie",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"mounts": [
+      {
+        "type": "volume",
+        "source": "poetry-cache",
+        "target": "/home/vscode/.cache/pypoetry"
+      },
+      {
+        "type": "volume",
+        "source": "venv-cache",
+        "target": "${containerWorkspaceFolder}/.venv"
+      }
+    ],
 
 	// 👇 Features to add to the Dev Container. More info: https://containers.dev/implementors/features.
 	// "features": {},
@@ -12,18 +23,31 @@
 
 	// 👇 Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "",
-
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 	// 👇 Configure tool-specific properties.
-	"customizations": {
-        "vscode": {
-            "extensions":["ms-python.python", 
-			"njpwerner.autodocstring",
-			"ms-python.vscode-pylance",
+	"postAttachCommand": "sudo chown -R vscode /home/vscode/.cache/pypoetry ${containerWorkspaceFolder}/.venv && poetry config virtualenvs.in-project true && poetry install",
+    "remoteUser": "vscode",
+    "customizations": {
+      "vscode": {
+        "settings": {
+          "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
+        "git.openRepositoryInParentFolders": "always"
+        },
+        "extensions": [
+          "ms-python.python",
+          "ms-python.vscode-pylance",
           "streetsidesoftware.code-spell-checker",
-          "charliermarsh.ruff"]
-            }
-        }
-
+          "charliermarsh.ruff",
+          "tamasfe.even-better-toml",
+          "ms-azuretools.vscode-docker",
+          "github.vscode-pull-request-github",
+          "ms-vsliveshare.vsliveshare",
+          "mhutchie.git-graph",
+          "GitHub.copilot",
+          "eamodio.gitlens"
+        ]
+      }
+    }
 	// 👇 Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
 	// "remoteUser": "root"
 }
