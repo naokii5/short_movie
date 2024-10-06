@@ -1,7 +1,21 @@
 from moviepy.editor import AudioFileClip, concatenate_audioclips, ImageClip
 import os
+from moviepy.video.fx.resize import resize
+from PIL import Image, ImageFile
+
+def add_tiktok_margin(pil_img: ImageFile.ImageFile) -> ImageFile.ImageFile:
+    _, height = pil_img.size
+    new_width = 1080
+    new_height = 1920
+    # left = (new_width - width) // 2
+    top = (new_height - height) // 2
+    result = Image.new(pil_img.mode, (new_width, new_height), (255, 255, 255))
+    result.paste(pil_img, (0, top))
+    return result
 
 def create_movie(folder_path):
+    import PIL
+    PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
     clips = []
     for filename in os.listdir(folder_path):
         if filename.endswith(".wav"):
@@ -16,8 +30,12 @@ def create_movie(folder_path):
     video_clip = image_clip.set_duration(audio_clip.duration)
     # 音声を動画に追加
     final_clip = video_clip.set_audio(audio_clip)
-    final_clip.write_videofile("test_data/output.mp4", fps=24)
-    return final_clip
+    try:
+        video_resized = resize(final_clip,newsize=(1080, 1920))
+    except Exception as e:
+        print(e)
+    video_resized.write_videofile("test_data/output2.mp4", fps=24)
+    return video_resized
 
 import wave
 
@@ -31,12 +49,18 @@ def get_wav_duration(file_path):
 
 
 if __name__ == "__main__":
-    create_movie("test_data")
+    # create_movie("test_data")
         # 使用例
-    file_path = 'test_data/output.wav'
-    duration = get_wav_duration(file_path)
-    print(duration)
-    print(f"音声の長さ: {duration:.2f}秒")
+    # file_path = 'test_data/output.wav'
+    # duration = get_wav_duration(file_path)
+    # print(duration)
+    # print(f"音声の長さ: {duration:.2f}秒")
+
+    from PIL import Image
+
+    im = Image.open('test_data/img-jNZjvbeLKDXMYGr8Rbdkzerw.png')
+    im_new = add_tiktok_margin(im)
+    im_new.save('test_data/img-jNZjvbeLKDXMYGr8Rbdkzerw_margin.png')
 
 
 
