@@ -14,6 +14,8 @@ from loguru import logger
 import litellm
 litellm.set_verbose=True
 
+class Keywords(BaseModel):
+    keywords: List[str]
 class SearchTopic(BaseModel):
     keyword: str
     fact: str
@@ -23,7 +25,7 @@ class SearchTopicsResponse(BaseModel):
     search_topics: List[SearchTopic]
 
 
-def generate_search_keywords(keyword: str) -> list[str]:
+def generate_search_keywords(keyword: str) -> Keywords:
     """
     トピックに関連する雑学を検索するためのキーワードを生成します。
 
@@ -49,11 +51,11 @@ def generate_search_keywords(keyword: str) -> list[str]:
     ]
     logger.info(f"keywords: {keywords}")
     
-    return keywords
+    return Keywords(keywords=keywords)
 
 
 
-def find_interesting_topics(keywords: List[str]) -> str:
+def find_interesting_topics(keywords: Keywords) -> SearchTopicsResponse:
     """
     検索キーワードのリストから、LLMを使用して興味深い事実を検索します。
 
@@ -63,13 +65,13 @@ def find_interesting_topics(keywords: List[str]) -> str:
     戻り値:
         SearchTopicsResponse: LLMの応答
     """
-    assert all(isinstance(keyword,str) for keyword in keywords)
+    assert isinstance(keywords,Keywords)
     prompt = f"""
     # 命令
     以下のキーワードリストに関する興味深い具体的な事実を教えてください。英語で思考してください。
 
     # 検索キーワード:
-    {', '.join(keywords)}
+    {', '.join(keywords.keywords)}
 
     """
     response = config.client.messages.create(
