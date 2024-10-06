@@ -8,10 +8,14 @@ from typing import List
 from pydantic import BaseModel
 from loguru import logger
 from jinja2 import Template
+from loguru import logger
+
 # debug
 import litellm
 litellm.set_verbose=True
 
+class Keywords(BaseModel):
+    keywords: List[str]
 class SearchTopic(BaseModel):
     keyword: str
     fact: str
@@ -21,36 +25,37 @@ class SearchTopicsResponse(BaseModel):
     search_topics: List[SearchTopic]
 
 
-def generate_search_keywords(topic: str) -> list[str]:
+def generate_search_keywords(keyword: str) -> Keywords:
     """
     トピックに関連する雑学を検索するためのキーワードを生成します。
 
     引数:
-        topic (str): 検索のベースとなるトピック
+        keyword (str): 検索のベースとなるトピック
 
     戻り値:
         list[str]: トピックに関連する雑学を検索するためのキーワードのリスト
     """
-    assert isinstance(topic,str)
+    assert isinstance(keyword,str)
     keywords = [
-        f"{topic} 雑学",
-        f"{topic} 豆知識",
-        f"{topic} 面白い事実",
-        f"{topic} 意外な情報",
-        f"{topic} トリビア",
-        f"{topic} 歴史",
-        f"{topic} 統計",
-        f"{topic} 秘密",
-        f"{topic} 真実",
-        f"{topic} 逸話",
-        f"{topic} パラドックス"
+        f"{keyword} 雑学",
+        f"{keyword} 豆知識",
+        f"{keyword} 面白い事実",
+        f"{keyword} 意外な情報",
+        f"{keyword} トリビア",
+        f"{keyword} 歴史",
+        f"{keyword} 統計",
+        f"{keyword} 秘密",
+        f"{keyword} 真実",
+        f"{keyword} 逸話",
+        f"{keyword} パラドックス"
     ]
+    logger.info(f"keywords: {keywords}")
     
-    return keywords
+    return Keywords(keywords=keywords)
 
 
 
-def find_interesting_topics(keywords: List[str]) -> str:
+def find_interesting_topics(keywords: Keywords) -> SearchTopicsResponse:
     """
     検索キーワードのリストから、LLMを使用して興味深い事実を検索します。
 
@@ -60,13 +65,13 @@ def find_interesting_topics(keywords: List[str]) -> str:
     戻り値:
         SearchTopicsResponse: LLMの応答
     """
-    assert all(isinstance(keyword,str) for keyword in keywords)
+    assert isinstance(keywords,Keywords)
     prompt = f"""
     # 命令
     以下のキーワードリストに関する興味深い具体的な事実を教えてください。英語で思考してください。
 
     # 検索キーワード:
-    {', '.join(keywords)}
+    {', '.join(keywords.keywords)}
 
     """
     response = config.client.messages.create(
@@ -80,7 +85,7 @@ def find_interesting_topics(keywords: List[str]) -> str:
     return response
 
 
-def select_topics(search_topics: SearchTopicsResponse, n: int = 3) -> str:
+def select_topics(search_topics: SearchTopicsResponse, n: int = 3) -> SearchTopicsResponse:
     """
     LLMを使用して、検索された事実から特に興味深いものを選択します。
 
@@ -115,7 +120,7 @@ def select_topics(search_topics: SearchTopicsResponse, n: int = 3) -> str:
     assert isinstance(response,SearchTopicsResponse)
     return response
 
-def make_search_keywords(search_topics: SearchTopicsResponse) -> SearchTopicsResponse:
+def make_search_words(search_topics: SearchTopicsResponse) -> SearchTopicsResponse:
     """
     選択された事実から、Web検索のためのキーワードを生成します。
 
@@ -126,6 +131,8 @@ def make_search_keywords(search_topics: SearchTopicsResponse) -> SearchTopicsRes
         SearchKeywords: Web検索のためのキーワードのリスト
     """
     assert isinstance(search_topics,SearchTopicsResponse)
+    assert all(isinstance(search_topic,SearchTopic) for search_topic in search_topics.search_topics)
+    assert all(search_topic.word_for_search is None for search_topic in search_topics.search_topics)
     source = """
     # 命令
     以下の検索トピックから、それぞれのWeb検索のためのキーワード(word_for_search)を生成してください。
@@ -158,5 +165,5 @@ if __name__=="__main__":
     logger.info(f"find_interesting_topics: {res}")
     selected_topics = select_topics(res)
     logger.info(f"selected_topics: {selected_topics}")
-    search_keywords = make_search_keywords(selected_topics)
+    search_keywords = make_search_words(selected_topics)
     logger.info(f"search_keywords: {search_keywords}")

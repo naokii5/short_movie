@@ -15,12 +15,18 @@ class ScrapeData(BaseModel):
     keyword: str
     data: list[URLText]
 
+class ScrapeDatas(BaseModel):
+    scrape_data: list[ScrapeData]
+
 class URLData(BaseModel):
     keyword: str
     urls: list[str]
-    meta_data: str
+    meta_data: dict # Google Custom Search APIから取得した結果全体
 
-def topics_URLs(search_topics: SearchTopicsResponse) -> list[URLData]:
+class URLDatas(BaseModel):
+    url_data: list[URLData]
+
+def topics_URLs(search_topics: SearchTopicsResponse) -> URLDatas:
     """
     検索キーワードリストから、Google Custom Search APIを使用して関連するURLを取得します。
 
@@ -45,6 +51,7 @@ def topics_URLs(search_topics: SearchTopicsResponse) -> list[URLData]:
                 .list(
                     q=search_topic.word_for_search,
                     cx=config.google_cse_id,
+                    num=3,
                 )
                 .execute()
             )
@@ -57,24 +64,25 @@ def topics_URLs(search_topics: SearchTopicsResponse) -> list[URLData]:
         file_path = f"urls/{url_data.keyword}-{i}.json"
         with open(file_path, "w") as f:
             json.dump(url_data.model_dump(by_alias=True), f, indent=4, ensure_ascii=False)
-    return urls
+    return URLDatas(url_data=urls)
 
 
-def scrape_urls(urls:list[URLData]) -> list[ScrapeData]:
+def scrape_urls(url_datas: URLDatas) -> ScrapeDatas:
     """
     Google Custom Search APIから取得したURLリストから、Jina Readerを使用して関連する情報をスクレイピングします。
 
     引数:
-        urls (list[URLData]): 検索キーワードと、Google Custom Search APIから取得したURLリスト
+        url_datas (URLDatas): 検索キーワードと、Google Custom Search APIから取得したURLリスト
 
     戻り値:
         list[ScrapeData]: スクレイピングされたデータのリスト
     """
-    assert all(isinstance(url, URLData) for url in urls)
+    assert isinstance(url_datas, URLDatas)
+    assert all(isinstance(url, URLData) for url in url_datas.url_data)
     base_url = 'https://r.jina.ai/'
     headers = {"Authorization": f"Bearer {config.jina_api_key}"}
     scrape_data_dict = {}
-    for url_data in urls:
+    for url_data in url_datas.url_data:
         for target_url in url_data.urls:
             try:
                 search_url = base_url+target_url
@@ -95,7 +103,7 @@ def scrape_urls(urls:list[URLData]) -> list[ScrapeData]:
     scrape_data_list = []
     for key, url_text_list in scrape_data_dict.items():
         scrape_data_list.append(ScrapeData(keyword=key, data=url_text_list))
-    return scrape_data_list
+    return ScrapeDatas(scrape_data=scrape_data_list)
 
 
 

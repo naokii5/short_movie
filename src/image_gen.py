@@ -2,10 +2,10 @@ from config import openai_client, gemini_flash
 from draft import Draft
 from pydantic import BaseModel
 from loguru import logger
-
+import base64
 class DraftImages(BaseModel):
     keyword: str
-    content_images: list[tuple[str, bytes]]
+    content_images: list[tuple[str, str]]
 
 def image_prompt(content: str)->str:
     """
@@ -19,7 +19,7 @@ def image_prompt(content: str)->str:
     """
     assert isinstance(content, str)
     prompt = f"""
-    以下の文章を出している間に表示されるアニメ風画像はどんな構図のものがいいでしょうか？
+    以下の文章を出している間に表示されるアニメ風画像はどんな構図のものがいいでしょうか？英語で思考してください。
     文章：{content}
     """
     try:

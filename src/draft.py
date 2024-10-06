@@ -1,25 +1,27 @@
 import config
+from translate import translate_with_gemini
 from loguru import logger
-from search import ScrapeData
+from search import ScrapeDatas, ScrapeData
 from pydantic import BaseModel
 
 class Draft(BaseModel):
     keyword: str
     content: list[str]
 
-def make_draft(scrape_data_list: list[ScrapeData]) -> Draft:
+def make_draft(scrape_datas: ScrapeDatas) -> Draft:
     """
-    スクレイピングしたデータを元に、下書きを作成します。
+    スクレイピングしたデータを元に下書きを作成します。
 
     引数:
-        scrape_data (dict[str, list[tuple[str, str]]): スクレイピングしたデータ
+        scrape_datas (ScrapeDatas): スクレイピングしたデータ
 
     戻り値:
         Draft: 動画の台本
     """
-    assert all(isinstance(scrape_data, ScrapeData) for scrape_data in scrape_data_list)
+    assert isinstance(scrape_datas, ScrapeDatas)
+    assert all(isinstance(scrape_data, ScrapeData) for scrape_data in scrape_datas.scrape_data)
     draft = ""
-    for scrape_data in scrape_data_list:
+    for scrape_data in scrape_datas.scrape_data:
         draft += f"# keyword={scrape_data.keyword}\n\n"
         for data in scrape_data.data:
             draft += f"## {data.url}\n\n{data.text}\n\n"
@@ -27,9 +29,11 @@ def make_draft(scrape_data_list: list[ScrapeData]) -> Draft:
     # jinja2を使うとdraftが読み込まれないので、f-stringを使う
     source = f"""
     # 命令
-    以下の内容を参考に、小学生でもなんとなく分かる短い動画の台本を作成してください。
+    以下の内容を参考に、小学生でもなんとなく分かる60秒程度の動画の台本を作成してください。
     動画は淡々とした語り口で進行し、視聴者に知識を提供することを目的としていますが、ときには面白いエピソードを交えても構いません。
     また、情報源の全てを使う必要はありません。必要な情報を選んで使ってください。
+    keywordを書いた後、ナレーションを1行ずつ書いてください。
+
     # 情報源
     """
     prompt = source + draft
@@ -43,7 +47,11 @@ def make_draft(scrape_data_list: list[ScrapeData]) -> Draft:
     )
     logger.info(f"response: {response})")
     assert isinstance(response,Draft)
-    
+    japanese_rate = 1 - sum([chr.isascii() for chr in response.content[0]])/len(response.content[0])
+    threshold = 0.3 # 適当な数字
+    if japanese_rate < threshold:
+        new_content = [translate_with_gemini(content, "English","Japanese") for content in response.content]
+        response.content = new_content
     return response
 
 
