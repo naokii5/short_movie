@@ -1,7 +1,10 @@
-from moviepy.editor import AudioFileClip, concatenate_audioclips, ImageClip
-import os
-from moviepy.video.fx.resize import resize
+from image_gen import DraftImages
+from moviepy.editor import AudioFileClip, concatenate_audioclips, ImageClip, VideoClip
+import PIL
 from PIL import Image, ImageFile
+import base64
+from io import BytesIO
+import tempfile
 
 def add_tiktok_margin(pil_img: ImageFile.ImageFile) -> ImageFile.ImageFile:
     _, height = pil_img.size
@@ -13,54 +16,48 @@ def add_tiktok_margin(pil_img: ImageFile.ImageFile) -> ImageFile.ImageFile:
     result.paste(pil_img, (0, top))
     return result
 
-def create_movie(folder_path):
-    import PIL
+def create_movie(voice_list: list[bytes], draftimages: DraftImages)->VideoClip:
     PIL.Image.ANTIALIAS = PIL.Image.LANCZOS
+
+    # 写真を読み込んでリサイズ
+    image_list = []
+    for _,image_b64 in draftimages.content_images:
+        image_data = base64.b64decode(image_b64)
+        image_bytes = BytesIO(image_data)
+        image = Image.open(image_bytes)
+        image_resized = add_tiktok_margin(image)
+        image_list.append(image_resized)
+
+    # 音声を読み込んで画像と結合
     clips = []
-    for filename in os.listdir(folder_path):
-        if filename.endswith(".wav"):
-            filepath = os.path.join(folder_path, filename)
-            clip = AudioFileClip(filepath)
-            clips.append(clip)
+    for voice in voice_list:
+        with tempfile.NamedTemporaryFile(delete=True) as temp_audio_file:
+        
+            temp_audio_file.write(voice)
+            temp_audio_file.flush() 
+
+             # 一時ファイルのパスを取得
+            temp_audio_file_path = temp_audio_file.name
+            
+            # AudioFileClipを使って音声を開く
+            temp_audio_clip = AudioFileClip(temp_audio_file_path)
+            # 音声の長さを取得
+            duration = temp_audio_clip.duration
+            clips.append((temp_audio_clip, duration))
+            temp_audio_clip.close()
 
     audio_clip = concatenate_audioclips(clips)
-    # 静止画と音声ファイルを読み込む
-    image_clip = ImageClip("test_data/ai_character07_surprise.png")
-    # 静止画クリップの長さを音声の長さに合わせる
-    video_clip = image_clip.set_duration(audio_clip.duration)
-    # 音声を動画に追加
-    final_clip = video_clip.set_audio(audio_clip)
-    try:
-        video_resized = resize(final_clip,newsize=(1080, 1920))
-    except Exception as e:
-        print(e)
-    video_resized.write_videofile("test_data/output2.mp4", fps=24)
-    return video_resized
-
-import wave
-
-def get_wav_duration(file_path):
-    with wave.open(file_path, 'r') as wav_file:
-        frames = wav_file.getnframes()
-        rate = wav_file.getframerate()
-        duration = frames / float(rate)
-    return duration
+    for (audio,duration),image in zip(audio_clip,image_list):
+        image_clip = ImageClip(image)
+        video_clip = image_clip.set_duration(duration)
+        final_clip = video_clip.set_audio(audio)
+        final_clip.write_videofile(f"test_data/output_{draftimages.keyword}.mp4", fps=24)
+    return final_clip
 
 
 
 if __name__ == "__main__":
-    # create_movie("test_data")
-        # 使用例
-    # file_path = 'test_data/output.wav'
-    # duration = get_wav_duration(file_path)
-    # print(duration)
-    # print(f"音声の長さ: {duration:.2f}秒")
-
-    from PIL import Image
-
-    im = Image.open('test_data/img-jNZjvbeLKDXMYGr8Rbdkzerw.png')
-    im_new = add_tiktok_margin(im)
-    im_new.save('test_data/img-jNZjvbeLKDXMYGr8Rbdkzerw_margin.png')
+    ...
 
 
 
