@@ -18,7 +18,7 @@ class ScrapeData(BaseModel):
 class URLData(BaseModel):
     keyword: str
     urls: list[str]
-    meta_data: str
+    meta_data: dict # Google Custom Search APIから取得した結果全体
 
 def topics_URLs(search_topics: SearchTopicsResponse) -> list[URLData]:
     """
@@ -45,6 +45,7 @@ def topics_URLs(search_topics: SearchTopicsResponse) -> list[URLData]:
                 .list(
                     q=search_topic.word_for_search,
                     cx=config.google_cse_id,
+                    num=3,
                 )
                 .execute()
             )
