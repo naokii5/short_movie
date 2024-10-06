@@ -2,6 +2,7 @@ import requests
 import os
 from dotenv import load_dotenv
 from loguru import logger
+from time import sleep
 from pathlib import Path
 from draft import Draft
 load_dotenv()
@@ -20,10 +21,19 @@ def audio(draft: Draft, speaker: int)->list[bytes]:
         synthesis_params = {
             "speaker": speaker}
         request_body = query.json()
-        response = requests.post(synthesis_url, params=synthesis_params, json=request_body,timeout=60)
-        if not response.status_code==200:
-            logger.info(response.status_code,response.content)
-        bytes_list.append(response.content)
+        retries = 3
+        for attempt in range(retries):
+            try:
+                response = requests.post(synthesis_url, params=synthesis_params, json=request_body,timeout=60)
+                if not response.status_code==200:
+                    logger.info(response.status_code,response.content)
+                bytes_list.append(response.content)
+                break
+            except Exception as e:
+                logger.error(f"Error: {e}")
+                if attempt == retries - 1:
+                    raise
+                sleep(5)
     return bytes_list
         
 
