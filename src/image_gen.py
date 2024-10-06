@@ -2,10 +2,10 @@ from config import openai_client, gemini_flash
 from draft import Draft
 from pydantic import BaseModel
 from loguru import logger
-
+import base64
 class DraftImages(BaseModel):
     keyword: str
-    content_images: list[tuple[str, bytes]]
+    content_images: list[tuple[str, str]]
 
 def image_prompt(content: str)->str:
     """
