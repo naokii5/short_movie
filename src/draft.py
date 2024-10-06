@@ -1,26 +1,27 @@
 import config
 from translate import translate_with_gemini
 from loguru import logger
-from search import ScrapeData
+from search import ScrapeDatas, ScrapeData
 from pydantic import BaseModel
 
 class Draft(BaseModel):
     keyword: str
     content: list[str]
 
-def make_draft(scrape_data_list: list[ScrapeData]) -> Draft:
+def make_draft(scrape_datas: ScrapeDatas) -> Draft:
     """
     スクレイピングしたデータを元に下書きを作成します。
 
     引数:
-        scrape_data (dict[str, list[tuple[str, str]]): スクレイピングしたデータ
+        scrape_datas (ScrapeDatas): スクレイピングしたデータ
 
     戻り値:
         Draft: 動画の台本
     """
-    assert all(isinstance(scrape_data, ScrapeData) for scrape_data in scrape_data_list)
+    assert isinstance(scrape_datas, ScrapeDatas)
+    assert all(isinstance(scrape_data, ScrapeData) for scrape_data in scrape_datas.scrape_data)
     draft = ""
-    for scrape_data in scrape_data_list:
+    for scrape_data in scrape_datas.scrape_data:
         draft += f"# keyword={scrape_data.keyword}\n\n"
         for data in scrape_data.data:
             draft += f"## {data.url}\n\n{data.text}\n\n"
