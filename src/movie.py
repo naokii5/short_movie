@@ -4,11 +4,11 @@ from moviepy.video.fx.resize import resize
 from PIL import Image, ImageFile
 
 def add_tiktok_margin(pil_img: ImageFile.ImageFile) -> ImageFile.ImageFile:
-    width, height = pil_img.size
+    _, height = pil_img.size
     new_width = 1080
     new_height = 1920
     # left = (new_width - width) // 2
-    top = (new_height - height) // 4
+    top = (new_height - height) // 2
     result = Image.new(pil_img.mode, (new_width, new_height), (255, 255, 255))
     result.paste(pil_img, (0, top))
     return result
@@ -58,9 +58,9 @@ if __name__ == "__main__":
 
     from PIL import Image
 
-    im = Image.open('test_data/ai_character07_surprise.png')
+    im = Image.open('test_data/img-jNZjvbeLKDXMYGr8Rbdkzerw.png')
     im_new = add_tiktok_margin(im)
-    im_new.save('test_data/ai_character07_surprise_margin.png')
+    im_new.save('test_data/img-jNZjvbeLKDXMYGr8Rbdkzerw_margin.png')
 
 
 
