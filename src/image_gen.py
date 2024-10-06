@@ -19,7 +19,7 @@ def image_prompt(content: str)->str:
     """
     assert isinstance(content, str)
     prompt = f"""
-    以下の文章を出している間に表示されるアニメ風画像はどんな構図のものがいいでしょうか？
+    以下の文章を出している間に表示されるアニメ風画像はどんな構図のものがいいでしょうか？英語で思考してください。
     文章：{content}
     """
     try:
